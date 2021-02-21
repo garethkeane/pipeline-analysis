@@ -1,0 +1,68 @@
+#!/usr/bin/perl -w
+
+open(INPUT, "<", "Pipeline_Data.txt") or die "Can't open pipeline data\n";
+
+#Hardcode some numbers
+$number_of_runs = 5000;
+$Revenue_Win_Discard_Threshold = 0.30;
+$Revenue_Haircut = 0.50;
+$Revenue_Win_Std_Dev = 0.15;
+$Revenue_Haircut_Std_Dev = 0.20;
+
+$opportunity_counter = 0;
+
+while (<INPUT>) {
+	@array = split(",", $_);
+	$name[$opportunity_counter] = $array[0];
+	$revenue_potential[$opportunity_counter] = $array[1];
+	$revenue_potential[$opportunity_counter] =~ s/^\$//;
+	#print "Revenue potential: $revenue_potential[$opportunity_counter]\n";
+	#sleep 5;
+	$revenue_win_percentage[$opportunity_counter] = $array[2];
+	$revenue_win_percentage[$opportunity_counter] =~ s/%\r\n//;
+	$revenue_win_percentage[$opportunity_counter] = $revenue_win_percentage[$opportunity_counter] / 100;
+	$opportunity_counter++;
+	}
+close (INPUT);
+
+open (SIMULATION_OUTPUT, ">", "Simulation_outputs.txt");
+
+for ($count = 0; $count < $number_of_runs; $count++) {
+	$revenue_this_run = 0; # initially 0!
+	open (OUTPUT, ">", "Output_Files/run_$count.txt");
+	for ($count2 = 0; $count2<$opportunity_counter; $count2++) {
+		print OUTPUT "$name[$count2], ";
+		$revenue_this_time = 0; # initialize to zero!
+		$random_number = rand();
+		$random_number_2 = rand();
+		if ($random_number_2 < 0.5) {
+			$random_number = $random_number * -1;
+			}
+		$revenue_win_percentage_adjustment = $Revenue_Win_Std_Dev * $random_number;
+		
+		if (($revenue_win_percentage[$count2]+$revenue_win_percentage_adjustment)>$Revenue_Win_Discard_Threshold) {
+			$revenue_win_percentage_this_time = $revenue_win_percentage[$count2]+$revenue_win_percentage_adjustment;
+			}
+		else {
+			$revenue_win_percentage_this_time = 0;
+			}
+		
+		$random_number_3 = rand();
+		$random_number_4 = rand();
+		if ($random_number_4 < 0.5) {
+			$random_number_3 = $random_number_3 * -1;
+			}
+		$revenue_potential_adjustment = $Revenue_Haircut_Std_Dev * $random_number;
+
+		$revenue_this_time = $revenue_potential[$count2] * ($revenue_win_percentage_this_time) * ($Revenue_Haircut+$revenue_potential_adjustment);
+		print OUTPUT "$random_number, $random_number_3, $revenue_this_time\n";
+		$revenue_this_run = $revenue_this_run + $revenue_this_time;
+		}
+	close (OUTPUT);
+	print SIMULATION_OUTPUT "$count, $revenue_this_run\n";
+	}
+close (SIMULATION_OUTPUT);
+exit;
+	
+	
+	
